@@ -1,8 +1,10 @@
 import datetime
+import io
 import random
 import string
-from fpdf import FPDF
 import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 import streamlit as st
 
 # 1. إعدادات الصفحة والهوية البصرية
@@ -67,7 +69,7 @@ st.markdown(
 )
 
 
-# 3. دالة إنشاء تقرير الـ PDF المالي
+# 3. دالة إنشاء تقرير PDF آمن ومستقر عبر ReportLab
 def generate_pdf_report(
     product_name,
     buy_price,
@@ -80,43 +82,49 @@ def generate_pdf_report(
     shipping_cost,
     gateway_fee,
 ):
-    pdf = FPDF()
-    pdf.add_page()
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
 
-    # الهيدر والعنوان
-    pdf.set_font("Helvetica", style="B", size=18)
-    pdf.cell(
-        200, 10, txt="4U2 Accounting - Financial Report", ln=True, align="C"
+    # رأس التقرير
+    p.setFont("Helvetica-Bold", 18)
+    p.drawString(160, 750, "4U2 Accounting - Financial Report")
+
+    p.setFont("Helvetica", 10)
+    p.drawString(
+        220, 730, f"Date: {datetime.date.today().strftime('%Y-%m-%d')}"
     )
-    pdf.set_font("Helvetica", size=10)
-    pdf.cell(
-        200,
-        10,
-        txt=f"Date: {datetime.date.today().strftime('%Y-%m-%d')}",
-        ln=True,
-        align="C",
+
+    p.line(50, 715, 550, 715)
+
+    # بيانات المنتج والتكاليف
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, 680, f"Product Name: {product_name}")
+    p.drawString(50, 655, f"Selling Price: {target_sell_price:.2f} SAR")
+    p.drawString(50, 630, f"Cost Price: {buy_price:.2f} SAR")
+    p.drawString(50, 605, f"Marketing Cost: {marketing_cost:.2f} SAR")
+    p.drawString(50, 580, f"Shipping Cost: {shipping_cost:.2f} SAR")
+    p.drawString(50, 555, f"Gateway Fee: {gateway_fee:.2f} SAR")
+    p.drawString(50, 530, f"VAT (15%): {vat_amount:.2f} SAR")
+
+    p.line(50, 510, 550, 510)
+
+    # النتائج المالية النهائية
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, 470, f"Total Costs: {total_costs:.2f} SAR")
+    p.drawString(50, 445, f"Net Profit: {net_profit:.2f} SAR")
+    p.drawString(50, 420, f"Profit Margin: {profit_margin:.1f}%")
+
+    # التذييل
+    p.setFont("Helvetica", 9)
+    p.drawString(
+        180, 50, "Generated automatically by 4U2 Accounting System"
     )
-    pdf.ln(10)
 
-    # تفاصيل المنتج والتكاليف
-    pdf.set_font("Helvetica", style="B", size=12)
-    pdf.cell(200, 8, txt=f"Product Name: {product_name}", ln=True)
-    pdf.cell(200, 8, txt=f"Selling Price: {target_sell_price:.2f} SAR", ln=True)
-    pdf.cell(200, 8, txt=f"Cost Price: {buy_price:.2f} SAR", ln=True)
-    pdf.cell(
-        200, 8, txt=f"Marketing Budget: {marketing_cost:.2f} SAR", ln=True
-    )
-    pdf.cell(200, 8, txt=f"Shipping Cost: {shipping_cost:.2f} SAR", ln=True)
-    pdf.cell(200, 8, txt=f"Gateway Fee: {gateway_fee:.2f} SAR", ln=True)
-    pdf.cell(200, 8, txt=f"VAT (15%): {vat_amount:.2f} SAR", ln=True)
-    pdf.ln(5)
+    p.showPage()
+    p.save()
 
-    pdf.set_font("Helvetica", style="B", size=14)
-    pdf.cell(200, 10, txt=f"Total Costs: {total_costs:.2f} SAR", ln=True)
-    pdf.cell(200, 10, txt=f"Net Profit: {net_profit:.2f} SAR", ln=True)
-    pdf.cell(200, 10, txt=f"Profit Margin: {profit_margin:.1f}%", ln=True)
-
-    return bytes(pdf.output())
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 # 4. دالة توليد الأكواد
