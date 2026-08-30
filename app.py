@@ -1,9 +1,11 @@
 import datetime
 import random
 import string
+import arabic_reshaper
+from bidi.algorithm import get_display
+from fpdf import FPDF
 import pandas as pd
 import streamlit as st
-from weasyprint import HTML
 
 # 1. إعدادات الصفحة والهوية البصرية
 st.set_page_config(
@@ -67,7 +69,13 @@ st.markdown(
 )
 
 
-# 3. دالة إنشاء تقرير الـ PDF العربي الاحترافي
+# دالة لمعالجة النص العربي للـ PDF
+def ar(text):
+    reshaped_text = arabic_reshaper.reshape(text)
+    return get_display(reshaped_text)
+
+
+# 3. دالة إنشاء تقرير الـ PDF العربي عبر FPDF
 def generate_arabic_pdf_report(
     product_name,
     buy_price,
@@ -80,84 +88,43 @@ def generate_arabic_pdf_report(
     shipping_cost,
     gateway_fee,
 ):
-    html_content = f"""<!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <style>
-            @page {{ size: A4; margin: 15mm 12mm; background-color: #F8FAFC; }}
-            body {{ font-family: 'Amiri', 'Tajawal', sans-serif; color: #0F172A; margin: 0; padding: 0; }}
-            .header {{ background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); color: #FFFFFF; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px; }}
-            .header h1 {{ margin: 0 0 6px 0; font-size: 24pt; color: #FFFFFF; }}
-            .header p {{ margin: 0; font-size: 11pt; color: #94A3B8; }}
-            .product-card {{ background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }}
-            .product-card h2 {{ margin: 0 0 10px 0; font-size: 14pt; color: #1E3A8A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; }}
-            .metrics-grid {{ display: table; width: 100%; margin-bottom: 20px; }}
-            .metric-cell {{ display: table-cell; width: 33.33%; padding: 5px; }}
-            .metric-box {{ background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 8px; padding: 14px; text-align: center; }}
-            .metric-title {{ font-size: 9pt; color: #64748B; margin-bottom: 4px; }}
-            .metric-value {{ font-size: 14pt; font-weight: bold; color: #0F172A; }}
-            .metric-value.profit {{ color: #166534; }}
-            table.details-table {{ width: 100%; border-collapse: collapse; background: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; }}
-            table.details-table th {{ background: #1E293B; color: #FFFFFF; text-align: right; padding: 10px 14px; font-size: 10pt; }}
-            table.details-table td {{ padding: 10px 14px; border-bottom: 1px solid #F1F5F9; font-size: 10pt; }}
-            table.details-table tr:nth-child(even) {{ background-color: #F8FAFC; }}
-            .footer {{ margin-top: 30px; text-align: center; font-size: 9pt; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>4U2 للمحاسبة</h1>
-            <p>تقرير التحليل المالي وهندسة الربحية للمنتج</p>
-        </div>
-        <div class="product-card">
-            <h2>تفاصيل المنتج الأساسية</h2>
-            <p style="margin: 4px 0;"><strong>اسم المنتج / الخدمة:</strong> {product_name}</p>
-            <p style="margin: 4px 0;"><strong>تاريخ التقرير:</strong> {datetime.date.today().strftime('%Y-%m-%d')}</p>
-        </div>
-        <div class="metrics-grid">
-            <div class="metric-cell">
-                <div class="metric-box">
-                    <div class="metric-title">إجمالي التكاليف</div>
-                    <div class="metric-value">{total_costs:.2f} ر.س</div>
-                </div>
-            </div>
-            <div class="metric-cell">
-                <div class="metric-box">
-                    <div class="metric-title">صافي الربح الحقيقي</div>
-                    <div class="metric-value profit">{net_profit:.2f} ر.س</div>
-                </div>
-            </div>
-            <div class="metric-cell">
-                <div class="metric-box">
-                    <div class="metric-title">هامش الربح الصافي</div>
-                    <div class="metric-value profit">{profit_margin:.1f}%</div>
-                </div>
-            </div>
-        </div>
-        <table class="details-table">
-            <thead>
-                <tr>
-                    <th>بند التكلفة / الإيراد</th>
-                    <th>المبلغ (ريال سعودي)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td>سعر البيع المستهدف للعميل</td><td>{target_sell_price:.2f} ر.س</td></tr>
-                <tr><td>ضريبة القيمة المضافة (15%)</td><td>{vat_amount:.2f} ر.س</td></tr>
-                <tr><td>تكلفة الشراء والتوريد</td><td>{buy_price:.2f} ر.س</td></tr>
-                <tr><td>تكلفة التسويق والإعلانات للقطعة</td><td>{marketing_cost:.2f} ر.س</td></tr>
-                <tr><td>تكلفة الشحن والتغليف</td><td>{shipping_cost:.2f} ر.س</td></tr>
-                <tr><td>عمولة بوابة الدفع والمنصة</td><td>{gateway_fee:.2f} ر.س</td></tr>
-            </tbody>
-        </table>
-        <div class="footer">
-            تم التوليد تلقائياً عبر منصة 4U2 للمحاسبة | جميع الحقوق محفوظة © {datetime.date.today().year}
-        </div>
-    </body>
-    </html>
-    """
-    return HTML(string=html_content).write_pdf()
+    pdf = FPDF()
+    pdf.add_page()
+
+    # العنوان الرئيسي
+    pdf.set_font("Helvetica", style="B", size=18)
+    pdf.cell(
+        200, 10, txt="4U2 Accounting - Financial Report", ln=True, align="C"
+    )
+    pdf.set_font("Helvetica", size=10)
+    pdf.cell(
+        200,
+        10,
+        txt=f"Date: {datetime.date.today().strftime('%Y-%m-%d')}",
+        ln=True,
+        align="C",
+    )
+    pdf.ln(10)
+
+    # بيانات التقرير
+    pdf.set_font("Helvetica", style="B", size=12)
+    pdf.cell(200, 8, txt=f"Product Name: {product_name}", ln=True)
+    pdf.cell(200, 8, txt=f"Selling Price: {target_sell_price:.2f} SAR", ln=True)
+    pdf.cell(200, 8, txt=f"Cost Price: {buy_price:.2f} SAR", ln=True)
+    pdf.cell(
+        200, 8, txt=f"Marketing Budget: {marketing_cost:.2f} SAR", ln=True
+    )
+    pdf.cell(200, 8, txt=f"Shipping Cost: {shipping_cost:.2f} SAR", ln=True)
+    pdf.cell(200, 8, txt=f"Gateway Fee: {gateway_fee:.2f} SAR", ln=True)
+    pdf.cell(200, 8, txt=f"VAT (15%): {vat_amount:.2f} SAR", ln=True)
+    pdf.ln(5)
+
+    pdf.set_font("Helvetica", style="B", size=14)
+    pdf.cell(200, 10, txt=f"Total Costs: {total_costs:.2f} SAR", ln=True)
+    pdf.cell(200, 10, txt=f"Net Profit: {net_profit:.2f} SAR", ln=True)
+    pdf.cell(200, 10, txt=f"Profit Margin: {profit_margin:.1f}%", ln=True)
+
+    return bytes(pdf.output())
 
 
 # 4. دالة توليد الأكواد
