@@ -1,8 +1,4 @@
 import datetime
-import tempfile
-import openpyxl
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
 import pandas as pd
 import streamlit as st
 
@@ -101,82 +97,41 @@ kpi2.metric(
 )
 kpi3.metric("سعر البيع المستهدف", f"{target_sell_price:.2f} ر.س")
 
+# تجهيز بيانات بطاقة Excel بتنسيق HTML متوافق مع Excel مباشرة
+html_card = f"""
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"/></head>
+<body>
+<table border="1" style="border-collapse:collapse; font-family:Calibri; text-align:center;">
+    <tr style="background-color:#1F4E78; color:white; font-size:16px; font-weight:bold;">
+        <td colspan="2">بطاقة منتج: {product_name}</td>
+    </tr>
+    <tr><td><b>رمز المنتج (SKU)</b></td><td>{sku}</td></tr>
+    <tr><td><b>اسم المنتج</b></td><td>{product_name}</td></tr>
+    <tr><td><b>تكلفة الشراء (ر.س)</b></td><td>{buy_price:.2f}</td></tr>
+    <tr><td><b>تكلفة الشحن والجمارك (ر.س)</b></td><td>{shipping_price:.2f}</td></tr>
+    <tr><td><b>تكلفة التسويق للوحدة (ر.س)</b></td><td>{marketing_cost:.2f}</td></tr>
+    <tr><td><b>نسبة عمولة البوابة</b></td><td>{gateway_commission_pct}%</td></tr>
+    <tr><td><b>عمولة البوابة المقدرة (ر.س)</b></td><td>{gateway_fee:.2f}</td></tr>
+    <tr><td><b>نسبة ضريبة القيمة المضافة</b></td><td>{vat_pct}%</td></tr>
+    <tr><td><b>قيمة الضريبة (ر.س)</b></td><td>{vat_amount:.2f}</td></tr>
+    <tr style="font-weight:bold;"><td>إجمالي تكلفة الوحدة (ر.س)</td><td>{total_unit_cost:.2f}</td></tr>
+    <tr><td><b>سعر البيع المستهدف (ر.س)</b></td><td>{target_sell_price:.2f}</td></tr>
+    <tr style="background-color:{'#C6EFCE' if gross_profit > 0 else '#FFC7CE'}; color:{'#006100' if gross_profit > 0 else '#9C0006'}; font-weight:bold;">
+        <td>هامش الربح الإجمالي (ر.س)</td><td>{gross_profit:.2f}</td>
+    </tr>
+    <tr style="background-color:{'#C6EFCE' if gross_profit > 0 else '#FFC7CE'}; color:{'#006100' if gross_profit > 0 else '#9C0006'}; font-weight:bold;">
+        <td>نسبة هامش الربح</td><td>{profit_margin_pct:.1f}%</td>
+    </tr>
+</table>
+</body>
+</html>
+"""
 
-def create_excel_card():
-    wb = Workbook()
-    ws = wb.active
-    ws.title = f"بطاقة_{sku}"
-    ws.views.sheetView[0].showGridLines = True
-
-    fill_header = PatternFill(
-        start_color="1F4E78", end_color="1F4E78", fill_type="solid"
-    )
-    fill_profit = PatternFill(
-        start_color="C6EFCE" if gross_profit > 0 else "FFC7CE", fill_type="solid"
-    )
-    font_header = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
-    font_bold = Font(name="Calibri", size=11, bold=True)
-    font_profit = Font(
-        name="Calibri",
-        size=11,
-        bold=True,
-        color="006100" if gross_profit > 0 else "9C0006",
-    )
-    align_center = Alignment(horizontal="center", vertical="center")
-    align_right = Alignment(horizontal="right", vertical="center")
-
-    ws.merge_cells("B2:D2")
-    ws["B2"] = f"بطاقة منتج: {product_name}"
-    ws["B2"].fill = fill_header
-    ws["B2"].font = font_header
-    ws["B2"].alignment = align_center
-
-    card_data = [
-        ("رمز المنتج (SKU)", sku),
-        ("اسم المنتج", product_name),
-        ("تكلفة الشراء (ر.س)", f"{buy_price:.2f}"),
-        ("تكلفة الشحن والجمارك (ر.س)", f"{shipping_price:.2f}"),
-        ("تكلفة التسويق للوحدة (ر.س)", f"{marketing_cost:.2f}"),
-        ("نسبة عمولة البوابة", f"{gateway_commission_pct}%"),
-        ("عمولة البوابة المقدرة (ر.س)", f"{gateway_fee:.2f}"),
-        ("نسبة ضريبة القيمة المضافة", f"{vat_pct}%"),
-        ("قيمة الضريبة (ر.س)", f"{vat_amount:.2f}"),
-        ("إجمالي تكلفة الوحدة (ر.س)", f"{total_unit_cost:.2f}"),
-        ("سعر البيع المستهدف (ر.س)", f"{target_sell_price:.2f}"),
-        ("هامش الربح الإجمالي (ر.س)", f"{gross_profit:.2f}"),
-        ("نسبة هامش الربح", f"{profit_margin_pct:.1f}%"),
-    ]
-
-    for row_idx, (label, val) in enumerate(card_data, start=3):
-        ws.cell(row=row_idx, column=2, value=label).font = font_bold
-        ws.cell(row=row_idx, column=2).alignment = align_right
-
-        val_cell = ws.cell(row=row_idx, column=3, value=val)
-        val_cell.alignment = align_center
-
-        if "هامش الربح" in label:
-            val_cell.fill = fill_profit
-            val_cell.font = font_profit
-        elif label == "إجمالي تكلفة الوحدة (ر.س)":
-            val_cell.font = font_bold
-
-    ws.column_dimensions["A"].width = 2
-    ws.column_dimensions["B"].width = 28
-    ws.column_dimensions["C"].width = 22
-    ws.column_dimensions["D"].width = 2
-
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-    wb.save(temp_file.name)
-    temp_file.close()
-    return temp_file.name
-
-
-excel_path = create_excel_card()
-with open(excel_path, "rb") as file:
-    st.download_button(
-        label="📥 تحميل بطاقة المنتج (Excel)",
-        data=file,
-        file_name=f"Product_Card_{sku}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-    )
+st.download_button(
+    label="📥 تحميل بطاقة المنتج (Excel)",
+    data=html_card.encode("utf-8"),
+    file_name=f"Product_Card_{sku}.xls",
+    mime="application/vnd.ms-excel",
+    use_container_width=True,
+)
