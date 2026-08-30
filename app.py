@@ -2,47 +2,83 @@ import datetime
 import pandas as pd
 import streamlit as st
 
-# 1. إعدادات الصفحة
+# 1. إعدادات الصفحة والاسم الجديد
 st.set_page_config(
-    page_title="حاسبة تكاليف المنتجات", page_icon="📱", layout="centered"
+    page_title="حاسبة التكاليف والربحية", page_icon="📊", layout="centered"
 )
 
-# 2. قاعدة بيانات المشتركين وتاريخ التفعيل
+# 2. قاعدة بيانات كود الماستر والاشتراكات
+MASTER_KEY = "Abud"
+
 SUBSCRIBERS_DATABASE = {
-    "PRO-2026": datetime.date(2026, 8, 30),
-    "VIP-9999": datetime.date(2026, 8, 30),
+    "PRO-1001": datetime.date(2026, 8, 30),
+    "PRO-1002": datetime.date(2026, 8, 30),
+    "PRO-1003": datetime.date(2026, 8, 30),
+    "PRO-1004": datetime.date(2026, 8, 30),
+    "PRO-1005": datetime.date(2026, 8, 30),
+    "PRO-1006": datetime.date(2026, 8, 30),
+    "PRO-1007": datetime.date(2026, 8, 30),
+    "PRO-1008": datetime.date(2026, 8, 30),
+    "PRO-1009": datetime.date(2026, 8, 30),
+    "PRO-1010": datetime.date(2026, 8, 30),
+    "PRO-1011": datetime.date(2026, 8, 30),
+    "PRO-1012": datetime.date(2026, 8, 30),
+    "PRO-1013": datetime.date(2026, 8, 30),
+    "PRO-1014": datetime.date(2026, 8, 30),
+    "PRO-1015": datetime.date(2026, 8, 30),
+    "PRO-1016": datetime.date(2026, 8, 30),
+    "PRO-1017": datetime.date(2026, 8, 30),
+    "PRO-1018": datetime.date(2026, 8, 30),
+    "PRO-1019": datetime.date(2026, 8, 30),
+    "PRO-1020": datetime.date(2026, 8, 30),
+    "PRO-1021": datetime.date(2026, 8, 30),
+    "PRO-1022": datetime.date(2026, 8, 30),
+    "PRO-1023": datetime.date(2026, 8, 30),
+    "PRO-1024": datetime.date(2026, 8, 30),
+    "PRO-1025": datetime.date(2026, 8, 30),
+    "PRO-1026": datetime.date(2026, 8, 30),
+    "PRO-1027": datetime.date(2026, 8, 30),
+    "PRO-1028": datetime.date(2026, 8, 30),
+    "PRO-1029": datetime.date(2026, 8, 30),
+    "PRO-1030": datetime.date(2026, 8, 30),
 }
 
 st.sidebar.title("🔐 بوابة المشتركين")
 user_key = st.sidebar.text_input("أدخل مفتاح الاشتراك الخاص بك:", type="password")
 
 if not user_key:
-    st.title("📱 حاسبة تكاليف وهامش ربح المنتجات")
+    st.title("📊 حاسبة التكاليف والربحية")
     st.warning(
         "⚠️ يرجى إدخال مفتاح الاشتراك في القائمة الجانبية للوصول إلى الخدمة."
     )
     st.stop()
 
-if user_key not in SUBSCRIBERS_DATABASE:
+is_master = user_key == MASTER_KEY
+
+if not is_master and user_key not in SUBSCRIBERS_DATABASE:
     st.error("❌ مفتاح الاشتراك غير صحيح.")
     st.stop()
 
-# فحص تاريخ انتهاء الاشتراك تلقائياً (بعد 365 يوم)
-activation_date = SUBSCRIBERS_DATABASE[user_key]
-expiration_date = activation_date + datetime.timedelta(days=365)
-today = datetime.date.today()
+if not is_master:
+    activation_date = SUBSCRIBERS_DATABASE[user_key]
+    expiration_date = activation_date + datetime.timedelta(days=365)
+    today = datetime.date.today()
 
-if today > expiration_date:
-    st.error(
-        f"❌ انتهت صلاحية اشتراكك بتاريخ {expiration_date}. يرجى التواصل مع الدعم للتجديد."
-    )
-    st.stop()
+    if today > expiration_date:
+        st.error(
+            f"❌ انتهت صلاحية اشتراكك بتاريخ {expiration_date}. يرجى التواصل مع الدعم للتجديد."
+        )
+        st.stop()
 
-days_left = (expiration_date - today).days
+    days_left = (expiration_date - today).days
 
-# 3. الواجهة الرئيسية للمشترك
-st.title("📱 حاسبة تكاليف المنتجات والربحية")
-st.success(f"مرحباً بك! اشتراكك فعال (متبقي {days_left} يوم على الانتهاء).")
+# 3. الواجهة الرئيسية بالاسم الجديد
+st.title("📊 حاسبة التكاليف والربحية")
+
+if is_master:
+    st.success("👑 أهلاً بك! تم تسجيل الدخول بواسطة كود الماستر (اشتراك مفتوح مدى الحياة).")
+else:
+    st.success(f"مرحباً بك! اشتراكك فعال (متبقي {days_left} يوم على الانتهاء).")
 
 st.markdown("---")
 
@@ -97,41 +133,55 @@ kpi2.metric(
 )
 kpi3.metric("سعر البيع المستهدف", f"{target_sell_price:.2f} ر.س")
 
-# تجهيز بيانات بطاقة Excel بتنسيق HTML متوافق مع Excel مباشرة
-html_card = f"""
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"/></head>
+# تجهيز ملف HTML قادِر على الطباعة المباشرة وحفظه كـ PDF تلقائياً
+printable_html = f"""
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<title>بطاقة تقرير - {product_name}</title>
+<style>
+    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; direction: rtl; text-align: right; }}
+    .card {{ border: 2px solid #1F4E78; border-radius: 10px; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #fcfcfc; }}
+    .header {{ background-color: #1F4E78; color: white; padding: 15px; border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px; }}
+    .row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; font-size: 16px; }}
+    .row.total {{ font-weight: bold; font-size: 18px; border-top: 2px solid #1F4E78; border-bottom: none; padding-top: 12px; }}
+    .profit {{ background-color: {'#C6EFCE' if gross_profit > 0 else '#FFC7CE'}; color: {'#006100' if gross_profit > 0 else '#9C0006'}; padding: 10px; border-radius: 6px; font-weight: bold; margin-top: 15px; text-align: center; }}
+    @media print {{
+        .no-print {{ display: none; }}
+        body {{ padding: 0; }}
+        .card {{ border: none; max-width: 100%; }}
+    }}
+</style>
+</head>
 <body>
-<table border="1" style="border-collapse:collapse; font-family:Calibri; text-align:center;">
-    <tr style="background-color:#1F4E78; color:white; font-size:16px; font-weight:bold;">
-        <td colspan="2">بطاقة منتج: {product_name}</td>
-    </tr>
-    <tr><td><b>رمز المنتج (SKU)</b></td><td>{sku}</td></tr>
-    <tr><td><b>اسم المنتج</b></td><td>{product_name}</td></tr>
-    <tr><td><b>تكلفة الشراء (ر.س)</b></td><td>{buy_price:.2f}</td></tr>
-    <tr><td><b>تكلفة الشحن والجمارك (ر.س)</b></td><td>{shipping_price:.2f}</td></tr>
-    <tr><td><b>تكلفة التسويق للوحدة (ر.س)</b></td><td>{marketing_cost:.2f}</td></tr>
-    <tr><td><b>نسبة عمولة البوابة</b></td><td>{gateway_commission_pct}%</td></tr>
-    <tr><td><b>عمولة البوابة المقدرة (ر.س)</b></td><td>{gateway_fee:.2f}</td></tr>
-    <tr><td><b>نسبة ضريبة القيمة المضافة</b></td><td>{vat_pct}%</td></tr>
-    <tr><td><b>قيمة الضريبة (ر.س)</b></td><td>{vat_amount:.2f}</td></tr>
-    <tr style="font-weight:bold;"><td>إجمالي تكلفة الوحدة (ر.س)</td><td>{total_unit_cost:.2f}</td></tr>
-    <tr><td><b>سعر البيع المستهدف (ر.س)</b></td><td>{target_sell_price:.2f}</td></tr>
-    <tr style="background-color:{'#C6EFCE' if gross_profit > 0 else '#FFC7CE'}; color:{'#006100' if gross_profit > 0 else '#9C0006'}; font-weight:bold;">
-        <td>هامش الربح الإجمالي (ر.س)</td><td>{gross_profit:.2f}</td>
-    </tr>
-    <tr style="background-color:{'#C6EFCE' if gross_profit > 0 else '#FFC7CE'}; color:{'#006100' if gross_profit > 0 else '#9C0006'}; font-weight:bold;">
-        <td>نسبة هامش الربح</td><td>{profit_margin_pct:.1f}%</td>
-    </tr>
-</table>
+<div class="card">
+    <div class="header">بطاقة تقرير: {product_name}</div>
+    <div class="row"><span>رمز المنتج (SKU):</span><span><b>{sku}</b></span></div>
+    <div class="row"><span>تكلفة الشراء:</span><span>{buy_price:.2f} ر.س</span></div>
+    <div class="row"><span>تكلفة الشحن والجمارك:</span><span>{shipping_price:.2f} ر.س</span></div>
+    <div class="row"><span>تكلفة التسويق للوحدة:</span><span>{marketing_cost:.2f} ر.س</span></div>
+    <div class="row"><span>عمولة البوابة ({gateway_commission_pct}%):</span><span>{gateway_fee:.2f} ر.س</span></div>
+    <div class="row"><span>ضريبة القيمة المضافة ({vat_pct}%):</span><span>{vat_amount:.2f} ر.س</span></div>
+    <div class="row total"><span>إجمالي تكلفة الوحدة:</span><span>{total_unit_cost:.2f} ر.س</span></div>
+    <div class="row total"><span>سعر البيع المستهدف:</span><span>{target_sell_price:.2f} ر.س</span></div>
+    <div class="profit">
+        صافي هامش الربح: {gross_profit:.2f} ر.س ({profit_margin_pct:.1f}%)
+    </div>
+</div>
+<br>
+<div style="text-align: center;" class="no-print">
+    <button onclick="window.print()" style="padding: 12px 25px; background-color: #1F4E78; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">🖨️ طباعة التقرير / حفظ كـ PDF</button>
+</div>
 </body>
 </html>
 """
 
+st.markdown("---")
 st.download_button(
-    label="📥 تحميل بطاقة المنتج (Excel)",
-    data=html_card.encode("utf-8"),
-    file_name=f"Product_Card_{sku}.xls",
-    mime="application/vnd.ms-excel",
+    label="🖨️ تحميل التقرير للطباعة المباشرة (PDF/صفحة)",
+    data=printable_html.encode("utf-8"),
+    file_name=f"Report_{sku}.html",
+    mime="text/html",
     use_container_width=True,
 )
