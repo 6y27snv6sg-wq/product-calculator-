@@ -1,10 +1,7 @@
 import datetime
-import io
 import random
 import string
 import pandas as pd
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 import streamlit as st
 
 # 1. إعدادات الصفحة والهوية البصرية
@@ -69,8 +66,8 @@ st.markdown(
 )
 
 
-# 3. دالة إنشاء تقرير PDF آمن ومستقر عبر ReportLab
-def generate_pdf_report(
+# 3. دالة إنشاء تقرير HTML قابل للطباعة والحفظ كـ PDF مباشرة من المتصفح
+def generate_html_report(
     product_name,
     buy_price,
     target_sell_price,
@@ -82,49 +79,50 @@ def generate_pdf_report(
     shipping_cost,
     gateway_fee,
 ):
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-
-    # رأس التقرير
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(160, 750, "4U2 Accounting - Financial Report")
-
-    p.setFont("Helvetica", 10)
-    p.drawString(
-        220, 730, f"Date: {datetime.date.today().strftime('%Y-%m-%d')}"
-    )
-
-    p.line(50, 715, 550, 715)
-
-    # بيانات المنتج والتكاليف
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, 680, f"Product Name: {product_name}")
-    p.drawString(50, 655, f"Selling Price: {target_sell_price:.2f} SAR")
-    p.drawString(50, 630, f"Cost Price: {buy_price:.2f} SAR")
-    p.drawString(50, 605, f"Marketing Cost: {marketing_cost:.2f} SAR")
-    p.drawString(50, 580, f"Shipping Cost: {shipping_cost:.2f} SAR")
-    p.drawString(50, 555, f"Gateway Fee: {gateway_fee:.2f} SAR")
-    p.drawString(50, 530, f"VAT (15%): {vat_amount:.2f} SAR")
-
-    p.line(50, 510, 550, 510)
-
-    # النتائج المالية النهائية
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, 470, f"Total Costs: {total_costs:.2f} SAR")
-    p.drawString(50, 445, f"Net Profit: {net_profit:.2f} SAR")
-    p.drawString(50, 420, f"Profit Margin: {profit_margin:.1f}%")
-
-    # التذييل
-    p.setFont("Helvetica", 9)
-    p.drawString(
-        180, 50, "Generated automatically by 4U2 Accounting System"
-    )
-
-    p.showPage()
-    p.save()
-
-    buffer.seek(0)
-    return buffer.getvalue()
+    html_content = f"""
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <title>تقرير مالي - {product_name}</title>
+        <style>
+            body {{ font-family: system-ui, -apple-system, sans-serif; padding: 40px; background-color: #fff; color: #1e293b; }}
+            .card {{ border: 2px solid #e2e8f0; border-radius: 12px; padding: 30px; max-width: 650px; margin: auto; }}
+            .header {{ text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 25px; }}
+            .header h2 {{ color: #1e3a8a; margin: 0; }}
+            .table-data {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            .table-data td, .table-data th {{ padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
+            .total-row {{ font-weight: bold; background-color: #f8fafc; font-size: 16px; }}
+            .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #64748b; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="header">
+                <h2>4U2 للمحاسبة - التقرير المالي</h2>
+                <p>تاريخ التقرير: {datetime.date.today().strftime('%Y-%m-%d')}</p>
+            </div>
+            <h3>تفاصيل المنتج: {product_name}</h3>
+            <table class="table-data">
+                <tr><th>البيان</th><th>القيمة (ر.س)</th></tr>
+                <tr><td>سعر البيع المستهدف</td><td>{target_sell_price:.2f}</td></tr>
+                <tr><td>تكلفة الشراء / الإنتاج</td><td>{buy_price:.2f}</td></tr>
+                <tr><td>تكلفة التسويق والإعلانات</td><td>{marketing_cost:.2f}</td></tr>
+                <tr><td>تكلفة الشحن والتغليف</td><td>{shipping_cost:.2f}</td></tr>
+                <tr><td>عمولة بوابة الدفع</td><td>{gateway_fee:.2f}</td></tr>
+                <tr><td>ضريبة القيمة المضافة (15%)</td><td>{vat_amount:.2f}</td></tr>
+                <tr class="total-row"><td>إجمالي التكاليف</td><td>{total_costs:.2f}</td></tr>
+                <tr class="total-row" style="color: #16a34a;"><td>صافي الربح الحقيقي</td><td>{net_profit:.2f}</td></tr>
+                <tr class="total-row"><td>هامش الربح الصافي</td><td>{profit_margin:.1f}%</td></tr>
+            </table>
+            <div class="footer">
+                <p>تم استخراج هذا التقرير آلياً عبر نظام 4U2 الهندسة المالية</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
 
 
 # 4. دالة توليد الأكواد
@@ -312,8 +310,8 @@ else:
         "🔴 **هامش ربح منخفض/مخاطرة!** التكاليف مرتفعة مقارنة بسعر البيع."
     )
 
-# 10. زر تنزيل تقرير الـ PDF
-pdf_bytes = generate_pdf_report(
+# 10. زر تنزيل تقرير مالي منسق جاهز للطباعة والحفظ
+html_report = generate_html_report(
     product_name,
     buy_price,
     target_sell_price,
@@ -327,9 +325,9 @@ pdf_bytes = generate_pdf_report(
 )
 
 st.download_button(
-    label="📄 تحميل التقرير المالي المنسق (PDF)",
-    data=pdf_bytes,
-    file_name=f"4U2_Financial_Report_{product_name}.pdf",
-    mime="application/pdf",
+    label="📄 تحميل التقرير المالي المنسق (HTML / PDF)",
+    data=html_report,
+    file_name=f"4U2_Report_{product_name}.html",
+    mime="text/html",
     use_container_width=True,
 )
