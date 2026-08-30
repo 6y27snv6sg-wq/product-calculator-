@@ -66,7 +66,7 @@ st.markdown(
 )
 
 
-# 3. دالة إنشاء تقرير HTML قابل للطباعة والحفظ كـ PDF مباشرة من المتصفح
+# 3. دالة إنشاء تقرير HTML قابل للطباعة والحفظ كـ PDF للمنتجات
 def generate_html_report(
     product_name,
     buy_price,
@@ -117,6 +117,78 @@ def generate_html_report(
             </table>
             <div class="footer">
                 <p>تم استخراج هذا التقرير آلياً عبر نظام 4U2 الهندسة المالية</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+
+# دالة إنشاء تقرير HTML/PDF لسجل المشركين والأكواد
+def generate_subscribers_html_report(sub_list, total_keys, active_keys):
+    rows_html = ""
+    for item in sub_list:
+        status_color = "#16a34a" if "فعال" in item["الحالة"] else "#dc2626"
+        rows_html += f"""
+        <tr>
+            <td style="font-family: monospace; font-weight: bold; font-size: 14px;">{item['الكود']}</td>
+            <td>{item['تاريخ التفعيل']}</td>
+            <td>{item['تاريخ الانتهاء']}</td>
+            <td>{item['الأيام المتبقية']} يوم</td>
+            <td style="color: {status_color}; font-weight: bold;">{item['الحالة']}</td>
+        </tr>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <title>سجل المشتركين والأكواد - 4U2</title>
+        <style>
+            body {{ font-family: system-ui, -apple-system, sans-serif; padding: 40px; background-color: #fff; color: #1e293b; }}
+            .card {{ border: 2px solid #e2e8f0; border-radius: 12px; padding: 30px; max-width: 750px; margin: auto; }}
+            .header {{ text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 25px; }}
+            .header h2 {{ color: #1e3a8a; margin: 0; }}
+            .stats {{ display: flex; justify-content: space-around; background-color: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }}
+            .table-data {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            .table-data td, .table-data th {{ padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: center; }}
+            .table-data th {{ background-color: #0f172a; color: #ffffff; font-weight: 600; }}
+            .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #64748b; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="header">
+                <h2>4U2 للمحاسبة - سجل المشتركين والأكواد</h2>
+                <p>تاريخ الاستخراج: {datetime.date.today().strftime('%Y-%m-%d')}</p>
+            </div>
+            
+            <table style="width:100%; margin-bottom: 20px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center;">
+                <tr>
+                    <td><div style="font-size: 13px; color: #64748b;">إجمالي الأكواد:</div><div style="font-size: 20px; font-weight: bold;">{total_keys}</div></td>
+                    <td><div style="font-size: 13px; color: #64748b;">الأكواد الفعالة:</div><div style="font-size: 20px; font-weight: bold; color: #16a34a;">{active_keys}</div></td>
+                </tr>
+            </table>
+
+            <table class="table-data">
+                <thead>
+                    <tr>
+                        <th>الكود</th>
+                        <th>تاريخ التفعيل</th>
+                        <th>تاريخ الانتهاء</th>
+                        <th>الأيام المتبقية</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
+            
+            <div class="footer">
+                <p>تم استخراج هذا السجل آلياً عبر لوحة إدارة 4U2</p>
             </div>
         </div>
     </body>
@@ -243,12 +315,15 @@ if is_master:
         df_subs = pd.DataFrame(sub_list)
         st.dataframe(df_subs, use_container_width=True)
 
-        csv_data = df_subs.to_csv(index=False).encode("utf-8-sig")
+        subscribers_html_report = generate_subscribers_html_report(
+            sub_list, total_keys, active_keys
+        )
+
         st.download_button(
-            label="📥 تصدير السجل كملف Excel / CSV",
-            data=csv_data,
-            file_name=f"4U2_Subscribers_{today}.csv",
-            mime="text/csv",
+            label="📄 تصدير سجل المشتركين والأكواد (HTML / PDF)",
+            data=subscribers_html_report,
+            file_name=f"4U2_Subscribers_{today}.html",
+            mime="text/html",
             use_container_width=True,
         )
 else:
