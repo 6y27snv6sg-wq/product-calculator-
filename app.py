@@ -1,8 +1,6 @@
-import datetime
+iimport datetime
 import random
 import string
-import arabic_reshaper
-from bidi.algorithm import get_display
 from fpdf import FPDF
 import pandas as pd
 import streamlit as st
@@ -69,14 +67,8 @@ st.markdown(
 )
 
 
-# دالة لمعالجة النص العربي للـ PDF
-def ar(text):
-    reshaped_text = arabic_reshaper.reshape(text)
-    return get_display(reshaped_text)
-
-
-# 3. دالة إنشاء تقرير الـ PDF العربي عبر FPDF
-def generate_arabic_pdf_report(
+# 3. دالة إنشاء تقرير الـ PDF المالي
+def generate_pdf_report(
     product_name,
     buy_price,
     target_sell_price,
@@ -91,7 +83,7 @@ def generate_arabic_pdf_report(
     pdf = FPDF()
     pdf.add_page()
 
-    # العنوان الرئيسي
+    # الهيدر والعنوان
     pdf.set_font("Helvetica", style="B", size=18)
     pdf.cell(
         200, 10, txt="4U2 Accounting - Financial Report", ln=True, align="C"
@@ -106,7 +98,7 @@ def generate_arabic_pdf_report(
     )
     pdf.ln(10)
 
-    # بيانات التقرير
+    # تفاصيل المنتج والتكاليف
     pdf.set_font("Helvetica", style="B", size=12)
     pdf.cell(200, 8, txt=f"Product Name: {product_name}", ln=True)
     pdf.cell(200, 8, txt=f"Selling Price: {target_sell_price:.2f} SAR", ln=True)
@@ -146,7 +138,7 @@ if "subscribers_db" not in st.session_state:
 
 MASTER_KEY = st.secrets.get("MASTER_KEY", "Abud")
 
-# 6. القائمة الجانبية وتعديل الهيدر
+# 6. القائمة الجانبية
 st.sidebar.markdown("### 🔐 بوابة الوصول الآمن")
 user_key = st.sidebar.text_input("مفتاح الاشتراك:", type="password")
 
@@ -313,7 +305,7 @@ else:
     )
 
 # 10. زر تنزيل تقرير الـ PDF
-pdf_bytes = generate_arabic_pdf_report(
+pdf_bytes = generate_pdf_report(
     product_name,
     buy_price,
     target_sell_price,
