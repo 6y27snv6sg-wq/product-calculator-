@@ -1,19 +1,6 @@
-import os
-import sys
-
-# تثبيت openpyxl تلقائياً في حال عدم وجودها
-try:
-    import openpyxl
-except ImportError:
-    import subprocess
-
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "openpyxl"]
-    )
-    import openpyxl
-
 import datetime
 import tempfile
+import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 import pandas as pd
