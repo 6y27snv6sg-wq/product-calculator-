@@ -54,10 +54,12 @@ if 'inventory' not in st.session_state:
         {"المنتج": "شاحن جداري", "الكمية": 5, "تكلفة الشراء (ر.س)": 15.0, "سعر البيع (ر.س)": 45.0}
     ])
 
+# قاعدة المشتركين: {الكود: تاريخ_أول_استخدام}
+# إذا كانت قيمة التاريخ None، فمعناه أن الكود جُدِدَ حديثاً ولم يُستخدم بعد
 if "subscribers_db" not in st.session_state:
     st.session_state.subscribers_db = {
-        "K9X2-M7P4": datetime.date(2026, 8, 30),
-        "H7T1-Z5W6": datetime.date(2026, 8, 30)
+        "K9X2-M7P4": datetime.date(2026, 1, 1),
+        "H7T1-Z5W6": None
     }
 
 MASTER_KEY = st.secrets.get("MASTER_KEY", "Abud")
@@ -83,12 +85,22 @@ if not is_master and uk not in db:
     st.error("❌ مفتاح الاشتراك غير صحيح.")
     st.stop()
 
+# للعملاء العاديين: إدراج/تسجيل أول تاريخ استخدام وإدارة صلاحية الـ 360 يوم
 if not is_master:
-    if today > (db[uk] + datetime.timedelta(days=365)):
-        st.error("❌ انتهت صلاحية الاشتراك.")
+    # 1. إذا كان أول استخدام للكود، نسجل تاريخ اليوم بدايةً للصلاحية
+    if db[uk] is None:
+        db[uk] = today
+
+    first_used_date = db[uk]
+    days_used = (today - first_used_date).days
+    days_left = 360 - days_used
+
+    # 2. التحقق من انتهاء الـ 360 يوماً
+    if days_left <= 0:
+        st.error("❌ انتهت صلاحية هذا الاشتراك (تجاوزت 360 يوماً من أول استخدام).")
         st.stop()
-    days_left = (db[uk] + datetime.timedelta(days=365) - today).days
-    st.sidebar.caption(f"⏳ متبقي على اشتراكك: {days_left} يوم")
+
+    st.sidebar.caption(f"⏳ متبقي على اشتراكك: {days_left} يوم من أصل 360 يوم")
 
 st.sidebar.markdown("---")
 
@@ -188,9 +200,9 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
             else:
                 st.error("🔴 هامش ربح منخفض أو خسارة!")
 
-            # 4. التقرير المالي التفاعلي للطباعة والمباشرة كـ PDF
+            # 4. التقرير المالي التفاعلي كـ PDF
             st.markdown("---")
-            st.subheader("📄 معااينة وطباعة التقرير (PDF)")
+            st.subheader("📄 معاينة وطباعة التقرير (PDF)")
 
             rows_html = "".join([f"<tr><td>{r['المنتج']}</td><td>{r['تكلفة الشراء (ر.س)']:.2f}</td><td>{r['حصة الشحن (ر.س)']:.2f}</td><td>{r['سعر البيع (ر.س)']:.2f}</td></tr>" for _, r in selected_df.iterrows()])
 
@@ -277,9 +289,28 @@ elif app_mode == "🛠️ لوحة المدير" and is_master:
             nc = generate_random_code()
             while nc in db:
                 nc = generate_random_code()
-            db[nc] = today
-            st.success(f"تم توليد الكود بنجاح: {nc}")
+            db[nc] = None  # يكون الكود غير مفعل حتى يقوم المستعمل بإدخاله لأول مرة
+            st.success(f"تم توليد الكود بنجاح: {nc} (سيبدأ حساب الـ 360 يوماً فور إدخاله لأول مرة)")
 
-    st.subheader("🔑 الأكواد المفعّلة")
-    sl = [{"الكود": k, "تاريخ التفعيل": str(v), "الحالة": "فعال"} for k, v in db.items()]
+    st.subheader("🔑 الأكواد وحالتها")
+    sl = []
+    for k, first_used in db.items():
+        if first_used is None:
+            status = "لم يُستخدم بعد"
+            days_rem = "360 يوم (عند التفعيل)"
+            used_date_str = "-"
+        else:
+            used_days = (today - first_used).days
+            rem = 360 - used_days
+            status = "فعال" if rem > 0 else "منتهي"
+            days_rem = f"{max(rem, 0)} يوم"
+            used_date_str = str(first_used)
+
+        sl.append({
+            "الكود": k,
+            "تاريخ أول استخدام": used_date_str,
+            "الأيام المتبقية": days_rem,
+            "الحالة": status
+        })
+
     st.dataframe(pd.DataFrame(sl), use_container_width=True)
