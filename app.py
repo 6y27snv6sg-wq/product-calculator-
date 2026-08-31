@@ -6,7 +6,7 @@ import streamlit as st
 
 # --- إعدادات الصفحة ---
 st.set_page_config(
-    page_title="4 you 2 - للمحاسبة الفورية",
+    page_title="للمحاسبة الفورية - 4 YOU 2",
     page_icon="📊",
     layout="wide"
 )
@@ -20,27 +20,31 @@ st.markdown("""
 }
 .main-header {
     background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
-    padding: 20px;
+    padding: 24px 20px;
     border-radius: 12px;
     color: #FFFFFF;
     text-align: center;
     margin-bottom: 20px;
 }
-.main-header h1 {
-    font-size: 28px !important;
-    margin: 0;
-    font-weight: 800;
+.main-header .title-large {
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    margin: 0 0 6px 0 !important;
+    line-height: 1.2;
 }
-.main-header h1 .green-text {
-    color: #16A34A !important;
+.main-header .brand-subtitle {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    direction: ltr;
+    display: inline-block;
 }
-.main-header h1 .blue-text {
+.blue-num {
     color: #2563EB !important;
 }
-.main-header p {
-    color: #94A3B8 !important;
-    font-size: 14px !important;
-    margin-top: 5px;
+.green-word {
+    color: #16A34A !important;
 }
 .stButton>button {
     background: #2563EB;
@@ -72,17 +76,24 @@ def generate_random_code():
     chars = string.ascii_uppercase + string.digits
     return f"{''.join(random.choices(chars, k=4))}-{''.join(random.choices(chars, k=4))}"
 
+# --- بناء الترويسة الموحدة ---
+def render_header(extra_title=""):
+    subtitle_extra = f" - {extra_title}" if extra_title else ""
+    return f"""
+    <div class="main-header">
+        <h1 class="title-large">للمحاسبة الفورية{subtitle_extra}</h1>
+        <div class="brand-subtitle">
+            <span class="blue-num">4</span> <span class="green-word">YOU</span> <span class="blue-num">2</span>
+        </div>
+    </div>
+    """
+
 # --- بوابة الوصول الآمن في القائمة الجانبية ---
 st.sidebar.markdown("### 🔐 بوابة الوصول الآمن")
 uk = st.sidebar.text_input("مفتاح الاشتراك:", type="password")
 
 if not uk:
-    st.markdown("""
-    <div class="main-header">
-        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span></h1>
-        <p>للمحاسبة الفورية</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(render_header(), unsafe_allow_html=True)
     st.warning("🔒 أدخل مفتاح الاشتراك بالقائمة الجانبية للوصول للنظام.")
     st.stop()
 
@@ -119,12 +130,7 @@ app_mode = st.sidebar.selectbox("اختر القسم:", nav_options)
 
 # --- 1. قسم حاسبة التكاليف الشاملة ---
 if app_mode == "🧮 حاسبة التكاليف الشاملة":
-    st.markdown("""
-    <div class="main-header">
-        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span></h1>
-        <p>للمحاسبة الفورية</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(render_header(), unsafe_allow_html=True)
 
     # 1. التكاليف العامة والعمولات
     st.subheader("1️⃣ التكاليف الإضافية والعمولات")
@@ -211,7 +217,7 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
             else:
                 st.error("🔴 هامش ربح منخفض أو خسارة!")
 
-            # 4. التقرير المالي المباشر للتنزيل والمعاينة (مع الاسم واللونين)
+            # 4. التقرير المالي المباشر للتنزيل والمعاينة
             st.markdown("---")
             st.subheader("📄 معاينة وطباعة التقرير (PDF)")
 
@@ -219,12 +225,12 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
 
             preview_html = f"""
             <div style="border: 2px solid #cbd5e1; border-radius: 12px; padding: 20px; background-color: #ffffff; color: #1e293b; font-family: system-ui, sans-serif; direction: rtl;">
-                <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
-                    <h2 style="margin: 0; font-size: 26px;">
-                        <span style="color: #16a34a;">4</span> <span style="color: #2563eb;">you 2</span>
-                    </h2>
-                    <p style="margin: 2px 0 6px 0; color: #475569; font-weight: bold; font-size: 14px;">للمحاسبة الفورية</p>
-                    <p style="margin: 0; color: #64748b; font-size: 12px;">التاريخ: {datetime.date.today()}</p>
+                <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 12px; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 30px; color: #0f172a; font-weight: 800;">للمحاسبة الفورية</h2>
+                    <div style="font-size: 24px; font-weight: 800; direction: ltr; margin-top: 4px;">
+                        <span style="color: #2563eb;">4</span> <span style="color: #16a34a;">YOU</span> <span style="color: #2563eb;">2</span>
+                    </div>
+                    <p style="margin: 6px 0 0 0; color: #64748b; font-size: 13px;">تاريخ التقرير: {datetime.date.today()}</p>
                 </div>
                 
                 <h4 style="color: #1e3a8a; margin-bottom: 8px;">تفاصيل المنتجات:</h4>
@@ -258,7 +264,7 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
                 </div>
             </div>
             """
-            st.components.v1.html(preview_html, height=520, scrolling=True)
+            st.components.v1.html(preview_html, height=540, scrolling=True)
         else:
             st.warning("يرجى اختيار منتج واحد على الأقل.")
     else:
@@ -266,11 +272,7 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
 
 # --- 2. قسم إدارة المخزون ---
 elif app_mode == "📦 إدارة المخزون":
-    st.markdown("""
-    <div class="main-header">
-        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span> - إدارة المخزون</h1>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(render_header("إدارة المخزون"), unsafe_allow_html=True)
     
     st.subheader("➕ إضافة منتج جديد")
     with st.form("add_product_form", clear_on_submit=True):
@@ -300,11 +302,7 @@ elif app_mode == "📦 إدارة المخزون":
 
 # --- 3. قسم لوحة المدير (لـ MASTER_KEY فقط) ---
 elif app_mode == "🛠️ لوحة المدير" and is_master:
-    st.markdown("""
-    <div class="main-header">
-        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span> - لوحة المدير</h1>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(render_header("لوحة المدير"), unsafe_allow_html=True)
     
     with st.expander("⚙️ توليد أكواد اشتراك جديدة", expanded=True):
         if st.button("✨ توليد كود جديد"):
