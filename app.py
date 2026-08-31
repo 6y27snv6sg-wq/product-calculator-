@@ -6,7 +6,7 @@ import streamlit as st
 
 # --- إعدادات الصفحة ---
 st.set_page_config(
-    page_title="4U2 للمحاسبة والمخزون",
+    page_title="4 you 2 - للمحاسبة الفورية",
     page_icon="📊",
     layout="wide"
 )
@@ -27,13 +27,19 @@ st.markdown("""
     margin-bottom: 20px;
 }
 .main-header h1 {
-    color: #FFFFFF !important;
-    font-size: 24px !important;
+    font-size: 28px !important;
     margin: 0;
+    font-weight: 800;
+}
+.main-header h1 .green-text {
+    color: #16A34A !important;
+}
+.main-header h1 .blue-text {
+    color: #2563EB !important;
 }
 .main-header p {
     color: #94A3B8 !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
     margin-top: 5px;
 }
 .stButton>button {
@@ -54,8 +60,6 @@ if 'inventory' not in st.session_state:
         {"المنتج": "شاحن جداري", "الكمية": 5, "تكلفة الشراء (ر.س)": 15.0, "سعر البيع (ر.س)": 45.0}
     ])
 
-# قاعدة المشتركين: {الكود: تاريخ_أول_استخدام}
-# إذا كانت قيمة التاريخ None، فمعناه أن الكود جُدِدَ حديثاً ولم يُستخدم بعد
 if "subscribers_db" not in st.session_state:
     st.session_state.subscribers_db = {
         "K9X2-M7P4": datetime.date(2026, 1, 1),
@@ -73,7 +77,12 @@ st.sidebar.markdown("### 🔐 بوابة الوصول الآمن")
 uk = st.sidebar.text_input("مفتاح الاشتراك:", type="password")
 
 if not uk:
-    st.markdown('<div class="main-header"><h1>4U2 للمحاسبة</h1><p>نظام الهندسة المالية وإدارة المخزون</p></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="main-header">
+        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span></h1>
+        <p>للمحاسبة الفورية</p>
+    </div>
+    """, unsafe_allow_html=True)
     st.warning("🔒 أدخل مفتاح الاشتراك بالقائمة الجانبية للوصول للنظام.")
     st.stop()
 
@@ -85,9 +94,7 @@ if not is_master and uk not in db:
     st.error("❌ مفتاح الاشتراك غير صحيح.")
     st.stop()
 
-# للعملاء العاديين: إدراج/تسجيل أول تاريخ استخدام وإدارة صلاحية الـ 360 يوم
 if not is_master:
-    # 1. إذا كان أول استخدام للكود، نسجل تاريخ اليوم بدايةً للصلاحية
     if db[uk] is None:
         db[uk] = today
 
@@ -95,7 +102,6 @@ if not is_master:
     days_used = (today - first_used_date).days
     days_left = 360 - days_used
 
-    # 2. التحقق من انتهاء الـ 360 يوماً
     if days_left <= 0:
         st.error("❌ انتهت صلاحية هذا الاشتراك (تجاوزت 360 يوماً من أول استخدام).")
         st.stop()
@@ -113,7 +119,12 @@ app_mode = st.sidebar.selectbox("اختر القسم:", nav_options)
 
 # --- 1. قسم حاسبة التكاليف الشاملة ---
 if app_mode == "🧮 حاسبة التكاليف الشاملة":
-    st.markdown('<div class="main-header"><h1>حاسبة التكاليف والربحية الشاملة</h1></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="main-header">
+        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span></h1>
+        <p>للمحاسبة الفورية</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 1. التكاليف العامة والعمولات
     st.subheader("1️⃣ التكاليف الإضافية والعمولات")
@@ -200,7 +211,7 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
             else:
                 st.error("🔴 هامش ربح منخفض أو خسارة!")
 
-            # 4. التقرير المالي التفاعلي كـ PDF
+            # 4. التقرير المالي المباشر للتنزيل والمعاينة (مع الاسم واللونين)
             st.markdown("---")
             st.subheader("📄 معاينة وطباعة التقرير (PDF)")
 
@@ -209,8 +220,11 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
             preview_html = f"""
             <div style="border: 2px solid #cbd5e1; border-radius: 12px; padding: 20px; background-color: #ffffff; color: #1e293b; font-family: system-ui, sans-serif; direction: rtl;">
                 <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
-                    <h2 style="color: #1e3a8a; margin: 0;">4U2 للمحاسبة - تقرير الشحنة والتكاليف</h2>
-                    <p style="margin: 5px 0; color: #64748b;">التاريخ: {datetime.date.today()}</p>
+                    <h2 style="margin: 0; font-size: 26px;">
+                        <span style="color: #16a34a;">4</span> <span style="color: #2563eb;">you 2</span>
+                    </h2>
+                    <p style="margin: 2px 0 6px 0; color: #475569; font-weight: bold; font-size: 14px;">للمحاسبة الفورية</p>
+                    <p style="margin: 0; color: #64748b; font-size: 12px;">التاريخ: {datetime.date.today()}</p>
                 </div>
                 
                 <h4 style="color: #1e3a8a; margin-bottom: 8px;">تفاصيل المنتجات:</h4>
@@ -252,7 +266,11 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
 
 # --- 2. قسم إدارة المخزون ---
 elif app_mode == "📦 إدارة المخزون":
-    st.markdown('<div class="main-header"><h1>إدارة المخزون</h1></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="main-header">
+        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span> - إدارة المخزون</h1>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.subheader("➕ إضافة منتج جديد")
     with st.form("add_product_form", clear_on_submit=True):
@@ -282,15 +300,19 @@ elif app_mode == "📦 إدارة المخزون":
 
 # --- 3. قسم لوحة المدير (لـ MASTER_KEY فقط) ---
 elif app_mode == "🛠️ لوحة المدير" and is_master:
-    st.markdown('<div class="main-header"><h1>لوحة تحكم المدير</h1></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="main-header">
+        <h1><span class="green-text">4</span> <span class="blue-text">you 2</span> - لوحة المدير</h1>
+    </div>
+    """, unsafe_allow_html=True)
     
     with st.expander("⚙️ توليد أكواد اشتراك جديدة", expanded=True):
         if st.button("✨ توليد كود جديد"):
             nc = generate_random_code()
             while nc in db:
                 nc = generate_random_code()
-            db[nc] = None  # يكون الكود غير مفعل حتى يقوم المستعمل بإدخاله لأول مرة
-            st.success(f"تم توليد الكود بنجاح: {nc} (سيبدأ حساب الـ 360 يوماً فور إدخاله لأول مرة)")
+            db[nc] = None
+            st.success(f"تم توليد الكود بنجاح: {nc}")
 
     st.subheader("🔑 الأكواد وحالتها")
     sl = []
