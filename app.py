@@ -1,56 +1,126 @@
-import streamlit as st
-import pandas as pd
 import datetime
+import random
+import string
+import pandas as pd
+import streamlit as st
 
 # --- إعدادات الصفحة ---
 st.set_page_config(
-    page_title="4U2 - حاسبة التكاليف والمخزون",
-    page_icon="📦",
+    page_title="4U2 للمحاسبة والمخزون",
+    page_icon="📊",
     layout="wide"
 )
 
-# --- 1. تهيئة الذاكرة (Session State) ---
+# --- التنسيق البصري CSS ---
+st.markdown("""
+<style>
+.stApp {
+    background-color: #F8FAFC;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.main-header {
+    background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+    padding: 20px;
+    border-radius: 12px;
+    color: #FFFFFF;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.main-header h1 {
+    color: #FFFFFF !important;
+    font-size: 24px !important;
+    margin: 0;
+}
+.main-header p {
+    color: #94A3B8 !important;
+    font-size: 13px !important;
+    margin-top: 5px;
+}
+.stButton>button {
+    background: #2563EB;
+    color: white !important;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    padding: 8px 16px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- إدارة حالة الجلسة (Session State) ---
 if 'inventory' not in st.session_state:
     st.session_state.inventory = pd.DataFrame([
-        {"المنتج": "منتج A", "تكلفة الشراء (ر.س)": 50.0, "سعر البيع (ر.س)": 100.0},
-        {"المنتج": "منتج B", "تكلفة الشراء (ر.س)": 30.0, "سعر البيع (ر.س)": 70.0}
+        {"المنتج": "سماعة بلوتوث", "الكمية": 15, "تكلفة الشراء (ر.س)": 40.0, "سعر البيع (ر.س)": 99.0},
+        {"المنتج": "شاحن جداري", "الكمية": 5, "تكلفة الشراء (ر.س)": 15.0, "سعر البيع (ر.س)": 45.0}
     ])
 
-# --- 2. القائمة الجانبية ---
-st.sidebar.title("4U2 Admin")
-im = st.sidebar.checkbox("تفعيل وضع المدير", value=True)
+if "subscribers_db" not in st.session_state:
+    st.session_state.subscribers_db = {
+        "K9X2-M7P4": datetime.date(2026, 8, 30),
+        "H7T1-Z5W6": datetime.date(2026, 8, 30)
+    }
 
-mo = ["🧮 حاسبة التكاليف الشاملة", "📦 إدارة المخزون"]
-if im:
-    mo.append("🛠️ لوحة المدير")
+MASTER_KEY = st.secrets.get("MASTER_KEY", "Abud")
 
-am = st.sidebar.selectbox("اختر القسم:", mo)
+def generate_random_code():
+    chars = string.ascii_uppercase + string.digits
+    return f"{''.join(random.choices(chars, k=4))}-{''.join(random.choices(chars, k=4))}"
 
-# --- القسم الأول: حاسبة التكاليف الشاملة ---
-if am == "🧮 حاسبة التكاليف الشاملة":
-    st.header("🧮 حاسبة التكاليف والشحنات المجمعة")
-    
+# --- بوابة الوصول الآمن في القائمة الجانبية ---
+st.sidebar.markdown("### 🔐 بوابة الوصول الآمن")
+uk = st.sidebar.text_input("مفتاح الاشتراك:", type="password")
+
+if not uk:
+    st.markdown('<div class="main-header"><h1>4U2 للمحاسبة</h1><p>نظام الهندسة المالية وإدارة المخزون</p></div>', unsafe_allow_html=True)
+    st.warning("🔒 أدخل مفتاح الاشتراك بالقائمة الجانبية للوصول للنظام.")
+    st.stop()
+
+is_master = (uk == MASTER_KEY)
+db = st.session_state.subscribers_db
+today = datetime.date.today()
+
+if not is_master and uk not in db:
+    st.error("❌ مفتاح الاشتراك غير صحيح.")
+    st.stop()
+
+if not is_master:
+    if today > (db[uk] + datetime.timedelta(days=365)):
+        st.error("❌ انتهت صلاحية الاشتراك.")
+        st.stop()
+    days_left = (db[uk] + datetime.timedelta(days=365) - today).days
+    st.sidebar.caption(f"⏳ متبقي على اشتراكك: {days_left} يوم")
+
+st.sidebar.markdown("---")
+
+# --- التنقل في التطبيق ---
+nav_options = ["🧮 حاسبة التكاليف الشاملة", "📦 إدارة المخزون"]
+if is_master:
+    nav_options.append("🛠️ لوحة المدير")
+
+app_mode = st.sidebar.selectbox("اختر القسم:", nav_options)
+
+# --- 1. قسم حاسبة التكاليف الشاملة ---
+if app_mode == "🧮 حاسبة التكاليف الشاملة":
+    st.markdown('<div class="main-header"><h1>حاسبة التكاليف والربحية الشاملة</h1></div>', unsafe_allow_html=True)
+
     # 1. التكاليف العامة والعمولات
     st.subheader("1️⃣ التكاليف الإضافية والعمولات")
     col1, col2 = st.columns(2)
-    
     with col1:
         mc = st.number_input("تكاليف التسويق الإجمالية (ر.س):", min_value=0.0, value=50.0)
         overhead_val = st.number_input("التكلفة العامة / التشغيلية الثابتة (ر.س):", min_value=0.0, value=30.0)
         overhead_rate_input = st.number_input("نسبة التكلفة العامة من المبيعات (%):", min_value=0.0, value=0.0)
-        
     with col2:
-        gr = st.number_input("نسبة بوابة الدفع / العمولة (%):", min_value=0.0, value=2.5) / 100.0
-        iv = st.checkbox("خاضع لضريبة القيمة المضافة (15%)", value=True)
+        gr = st.number_input("عمولة بوابة الدفع (%):", min_value=0.0, value=2.5) / 100.0
+        iv = st.checkbox("احتساب ضريبة القيمة المضافة (15%)", value=True)
 
     # 2. حسبة رسوم الشحن
     st.markdown("---")
     st.subheader("2️⃣ حسبة رسوم الشحن")
-    
     col_ship1, col_ship2 = st.columns(2)
     with col_ship1:
         shipping_calc_type = st.selectbox(
-            "طريقة توزيع الشحن:",
+            "طريقة توزيع الشحن على المنتجات:",
             ["توزيع الإجمالي بالتساوي", "توزيع الإجمالي حسب تكلفة الشراء", "مبلغ شحن ثابت لكل قطعة"]
         )
     with col_ship2:
@@ -66,130 +136,149 @@ if am == "🧮 حاسبة التكاليف الشاملة":
     st.subheader("3️⃣ اختيار منتجات الشحنة")
     
     df = st.session_state.inventory
-    selected_indices = st.multiselect(
-        "اختر المنتجات المضمنة في التقرير:",
-        options=list(df.index),
-        format_func=lambda x: f"{df.loc[x, 'المنتج']} - سعر البيع: {df.loc[x, 'سعر البيع (ر.س)']} ر.س",
-        default=list(df.index)
-    )
+    if not df.empty:
+        selected_indices = st.multiselect(
+            "اختر المنتجات المضمنة في التقرير:",
+            options=list(df.index),
+            format_func=lambda x: f"{df.loc[x, 'المنتج']} - سعر البيع: {df.loc[x, 'سعر البيع (ر.س)']} ر.س",
+            default=list(df.index)
+        )
 
-    if selected_indices:
-        selected_df = df.loc[selected_indices].copy()
-        num_items = len(selected_df)
-        total_buy_all = selected_df['تكلفة الشراء (ر.س)'].sum()
+        if selected_indices:
+            selected_df = df.loc[selected_indices].copy()
+            num_items = len(selected_df)
+            total_buy_all = selected_df['تكلفة الشراء (ر.س)'].sum()
 
-        if shipping_calc_type == "توزيع الإجمالي بالتساوي":
-            selected_df['حصة الشحن (ر.س)'] = total_shipping / num_items if num_items > 0 else 0
-        elif shipping_calc_type == "توزيع الإجمالي حسب تكلفة الشراء":
-            selected_df['حصة الشحن (ر.س)'] = (selected_df['تكلفة الشراء (ر.س)'] / total_buy_all * total_shipping) if total_buy_all > 0 else 0
-        else:
-            selected_df['حصة الشحن (ر.س)'] = sc_per_item
+            if shipping_calc_type == "توزيع الإجمالي بالتساوي":
+                selected_df['حصة الشحن (ر.س)'] = total_shipping / num_items if num_items > 0 else 0
+            elif shipping_calc_type == "توزيع الإجمالي حسب تكلفة الشراء":
+                selected_df['حصة الشحن (ر.س)'] = (selected_df['تكلفة الشراء (ر.س)'] / total_buy_all * total_shipping) if total_buy_all > 0 else 0
+            else:
+                selected_df['حصة الشحن (ر.س)'] = sc_per_item
 
-        st.dataframe(selected_df[['المنتج', 'تكلفة الشراء (ر.س)', 'سعر البيع (ر.س)', 'حصة الشحن (ر.س)']], use_container_width=True)
+            st.dataframe(selected_df[['المنتج', 'الكمية', 'تكلفة الشراء (ر.س)', 'سعر البيع (ر.س)', 'حصة الشحن (ر.س)']], use_container_width=True)
 
-        # 4. الحسابات المالية المجمعة
-        total_buy = selected_df['تكلفة الشراء (ر.س)'].sum()
-        total_sell = selected_df['سعر البيع (ر.س)'].sum()
-        actual_shipping = selected_df['حصة الشحن (ر.س)'].sum()
+            # الحسابات المالية
+            total_buy = selected_df['تكلفة الشراء (ر.س)'].sum()
+            total_sell = selected_df['سعر البيع (ر.س)'].sum()
+            actual_shipping = selected_df['حصة الشحن (ر.س)'].sum()
 
-        va = (total_sell - (total_sell / 1.15)) if iv else 0.0
-        ns = total_sell - va
-        gf = ns * gr
-        
-        calc_overhead = overhead_val + (ns * (overhead_rate_input / 100.0))
-        
-        tc = total_buy + mc + actual_shipping + gf + calc_overhead
-        npf = ns - tc
-        pm = (npf / ns * 100) if ns > 0 else 0.0
-
-        st.markdown("---")
-        st.subheader("📊 الملخص المالي للشحنة")
-        
-        res_col1, res_col2, res_col3, res_col4 = st.columns(4)
-        res_col1.metric("إجمالي المبيعات", f"{total_sell:.2f} ر.س")
-        res_col2.metric("إجمالي التكاليف", f"{tc:.2f} ر.س")
-        res_col3.metric("صافي الربح", f"{npf:.2f} ر.س", delta=f"{pm:.1f}% هامش ربح")
-        res_col4.metric("التكلفة العامة المستقطعة", f"{calc_overhead:.2f} ر.س")
-
-        # 5. عرض التقرير المباشر
-        st.markdown("---")
-        st.subheader("📄 معايرة وطباعة التقرير (PDF)")
-
-        rows_html = "".join([f"<tr><td>{r['المنتج']}</td><td>{r['تكلفة الشراء (ر.س)']:.2f}</td><td>{r['حصة الشحن (ر.س)']:.2f}</td><td>{r['سعر البيع (ر.س)']:.2f}</td></tr>" for _, r in selected_df.iterrows()])
-
-        preview_html = f"""
-        <div style="border: 2px solid #cbd5e1; border-radius: 12px; padding: 20px; background-color: #ffffff; color: #1e293b; font-family: system-ui, sans-serif; direction: rtl;">
-            <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
-                <h2 style="color: #1e3a8a; margin: 0;">4U2 للمحاسبة - تقرير الشحنة والتكاليف</h2>
-                <p style="margin: 5px 0; color: #64748b;">التاريخ: {datetime.date.today()}</p>
-            </div>
+            va = (total_sell - (total_sell / 1.15)) if iv else 0.0
+            ns = total_sell - va
+            gf = ns * gr
+            calc_overhead = overhead_val + (ns * (overhead_rate_input / 100.0))
             
-            <h4 style="color: #1e3a8a; margin-bottom: 8px;">تفاصيل المنتجات:</h4>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px;">
-                <thead>
-                    <tr style="background-color: #1e3a8a; color: white;">
-                        <th style="padding: 6px; text-align: right;">المنتج</th>
-                        <th style="padding: 6px; text-align: right;">الشراء</th>
-                        <th style="padding: 6px; text-align: right;">حصة الشحن</th>
-                        <th style="padding: 6px; text-align: right;">البيع</th>
-                    </tr>
-                </thead>
-                <tbody>
+            tc = total_buy + mc + actual_shipping + gf + calc_overhead
+            npf = ns - tc
+            pm = (npf / ns * 100) if ns > 0 else 0.0
+
+            st.markdown("---")
+            st.subheader("📊 الملخص المالي للشحنة")
+            
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("إجمالي المبيعات", f"{total_sell:.2f} ر.س")
+            c2.metric("إجمالي التكاليف", f"{tc:.2f} ر.س")
+            c3.metric("صافي الربح", f"{npf:.2f} ر.س")
+            c4.metric("هامش الربح", f"{pm:.1f}%")
+
+            if pm >= 30:
+                st.success("🟢 هامش ربح ممتاز!")
+            elif pm >= 15:
+                st.info("🟡 هامش ربح متوسط.")
+            else:
+                st.error("🔴 هامش ربح منخفض أو خسارة!")
+
+            # 4. التقرير المالي المباشر للتنزيل والمعاينة
+            st.markdown("---")
+            st.subheader("📄 التقرير المالي")
+
+            rows_html = "".join([f"<tr><td>{r['المنتج']}</td><td>{r['تكلفة الشراء (ر.س)']:.2f}</td><td>{r['حصة الشحن (ر.س)']:.2f}</td><td>{r['سعر البيع (ر.س)']:.2f}</td></tr>" for _, r in selected_df.iterrows()])
+
+            report_html = f"""<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
+            <style>
+                body {{ font-family: system-ui, sans-serif; padding: 20px; color: #1e293b; background: #fff; }}
+                .card {{ border: 2px solid #e2e8f0; border-radius: 10px; padding: 20px; max-width: 650px; margin: auto; }}
+                .h {{ text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px; }}
+                table {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; }}
+                td, th {{ padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
+                th {{ background: #1e3a8a; color: white; }}
+                .tr {{ font-weight: bold; background: #f8fafc; }}
+            </style></head><body>
+            <div class="card">
+                <div class="h">
+                    <h2>4U2 للمحاسبة - تقرير الشحنة والتكاليف</h2>
+                    <p>التاريخ: {datetime.date.today()}</p>
+                </div>
+                <h3>تفاصيل المنتجات:</h3>
+                <table>
+                    <tr><th>المنتج</th><th>الشراء</th><th>حصة الشحن</th><th>البيع</th></tr>
                     {rows_html}
-                </tbody>
-            </table>
+                </table>
+                <h3>الملخص المالي:</h3>
+                <table>
+                    <tr><td>إجمالي المبيعات</td><td>{total_sell:.2f} ر.س</td></tr>
+                    <tr><td>إجمالي الشراء والشحن</td><td>{(total_buy + actual_shipping):.2f} ر.س</td></tr>
+                    <tr><td>التكاليف التشغيلية والتسويق</td><td>{(mc + calc_overhead):.2f} ر.س</td></tr>
+                    <tr><td>العمولات والضرائب</td><td>{(gf + va):.2f} ر.س</td></tr>
+                    <tr class="tr" style="color:#16a34a;"><td>صافي الربح النهائي</td><td>{npf:.2f} ر.س</td></tr>
+                    <tr class="tr"><td>هامش الربح</td><td>{pm:.1f}%</td></tr>
+                </table>
+            </div></body></html>"""
 
-            <h4 style="color: #1e3a8a; margin-bottom: 8px;">الملخص المالي:</h4>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">إجمالي المبيعات</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">{total_sell:.2f} ر.س</td></tr>
-                <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">إجمالي الشراء والشحن</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">{(total_buy + actual_shipping):.2f} ر.س</td></tr>
-                <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">التكاليف التشغيلية والتسويق</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">{(mc + calc_overhead):.2f} ر.س</td></tr>
-                <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">العمولات والضرائب</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">{(gf + va):.2f} ر.س</td></tr>
-                <tr style="background-color: #f0fdf4; color: #16a34a; font-weight: bold;"><td style="padding: 8px;">صافي الربح النهائي</td><td style="padding: 8px;">{npf:.2f} ر.س ({pm:.1f}%)</td></tr>
-            </table>
-
-            <div style="margin-top: 20px; text-align: center;">
-                <button onclick="window.print()" style="background-color: #1e3a8a; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
-                    🖨️ حفظ التقرير كـ PDF / طباعة فورية
-                </button>
-            </div>
-        </div>
-        """
-        st.components.v1.html(preview_html, height=520, scrolling=True)
-
+            st.download_button(
+                label="📥 تحميل التقرير المالي (HTML/PDF)",
+                data=report_html.encode('utf-8'),
+                file_name=f"4U2_Report_{datetime.date.today()}.html",
+                mime="text/html",
+                use_container_width=True
+            )
+        else:
+            st.warning("يرجى اختيار منتج واحد على الأقل.")
     else:
-        st.warning("يرجى اختيار منتج واحد على الأقل.")
+        st.info("لا توجد منتجات بالمخزون حالياً. يرجى إضافتها من قسم إدارة المخزون.")
 
-# --- القسم الثاني: إدارة المخزون (تمت إضافة نموذج الإضافة هنا) ---
-elif am == "📦 إدارة المخزون":
-    st.header("📦 إدارة المخزون")
+# --- 2. قسم إدارة المخزون ---
+elif app_mode == "📦 إدارة المخزون":
+    st.markdown('<div class="main-header"><h1>إدارة المخزون</h1></div>', unsafe_allow_html=True)
     
-    # نموذج إضافة منتج جديد
     st.subheader("➕ إضافة منتج جديد")
     with st.form("add_product_form", clear_on_submit=True):
-        col_name, col_buy, col_sell = st.columns(3)
-        with col_name:
+        c_name, c_qty, c_buy, c_sell = st.columns(4)
+        with c_name:
             new_name = st.text_input("اسم المنتج:")
-        with col_buy:
-            new_buy = st.number_input("تكلفة الشراء (ر.س):", min_value=0.0, step=1.0)
-        with col_sell:
-            new_sell = st.number_input("سعر البيع (ر.س):", min_value=0.0, step=1.0)
+        with c_qty:
+            new_qty = st.number_input("الكمية:", min_value=1, value=1, step=1)
+        with c_buy:
+            new_buy = st.number_input("تكلفة الشراء (ر.س):", min_value=0.0, value=10.0, step=1.0)
+        with c_sell:
+            new_sell = st.number_input("سعر البيع (ر.س):", min_value=0.0, value=20.0, step=1.0)
             
-        submit_btn = st.form_submit_button("إضافة المنتج إلى المخزون")
-        
+        submit_btn = st.form_submit_button("إضافة إلى المخزون")
         if submit_btn:
             if new_name.strip() == "":
                 st.error("يرجى إدخال اسم المنتج.")
             else:
-                new_row = pd.DataFrame([{"المنتج": new_name, "تكلفة الشراء (ر.س)": new_buy, "سعر البيع (ر.س)": new_sell}])
+                new_row = pd.DataFrame([{"المنتج": new_name, "الكمية": new_qty, "تكلفة الشراء (ر.س)": new_buy, "سعر البيع (ر.س)": new_sell}])
                 st.session_state.inventory = pd.concat([st.session_state.inventory, new_row], ignore_index=True)
                 st.success(f"تمت إضافة '{new_name}' بنجاح!")
+                st.rerun()
 
     st.markdown("---")
-    st.subheader("📋 قائمة المنتجات الحالية")
+    st.subheader("📋 المنتجات الحالية")
     st.dataframe(st.session_state.inventory, use_container_width=True)
 
-# --- القسم الثالث: لوحة المدير ---
-elif am == "🛠️ لوحة المدير":
-    st.header("🛠️ لوحة التحكم والإعدادات")
-    st.info("إعدادات النظام العامة.")
+# --- 3. قسم لوحة المدير (لـ MASTER_KEY فقط) ---
+elif app_mode == "🛠️ لوحة المدير" and is_master:
+    st.markdown('<div class="main-header"><h1>لوحة تحكم المدير</h1></div>', unsafe_allow_html=True)
+    
+    with st.expander("⚙️ توليد أكواد اشتراك جديدة", expanded=True):
+        if st.button("✨ توليد كود جديد"):
+            nc = generate_random_code()
+            while nc in db:
+                nc = generate_random_code()
+            db[nc] = today
+            st.success(f"تم توليد الكود بنجاح: {nc}")
+
+    st.subheader("🔑 الأكواد المفعّلة")
+    sl = [{"الكود": k, "تاريخ التفعيل": str(v), "الحالة": "فعال"} for k, v in db.items()]
+    st.dataframe(pd.DataFrame(sl), use_container_width=True)
