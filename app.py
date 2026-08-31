@@ -9,17 +9,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- إدارة حالة الجلسة (Session State) لمنع إعادة التعيين على الجوال ---
-if 'current_tab' not in st.session_state:
-    st.session_state.current_tab = "🧮 حاسبة التكاليف الشاملة"
-
+# --- 1. تهيئة الذاكرة (Session State) بشكل آمن مسبقاً ---
 if 'inventory' not in st.session_state:
     st.session_state.inventory = pd.DataFrame([
         {"المنتج": "منتج A", "تكلفة الشراء (ر.س)": 50.0, "سعر البيع (ر.س)": 100.0},
         {"المنتج": "منتج B", "تكلفة الشراء (ر.س)": 30.0, "سعر البيع (ر.س)": 70.0}
     ])
 
-# --- القائمة الجانبية والملاحة الثابتة ---
+# --- 2. القائمة الجانبية (بدون أخطاء الدوران اللانهائي) ---
 st.sidebar.title("4U2 Admin")
 im = st.sidebar.checkbox("تفعيل وضع المدير", value=True)
 
@@ -27,41 +24,34 @@ mo = ["🧮 حاسبة التكاليف الشاملة", "📦 إدارة الم
 if im:
     mo.append("🛠️ لوحة المدير")
 
-current_index = mo.index(st.session_state.current_tab) if st.session_state.current_tab in mo else 0
-am = st.sidebar.selectbox("اختر القسم:", mo, index=current_index, key="nav_select")
-st.session_state.current_tab = am
+# اختيار القسم مباشرة بدون ربط مضاعف يتسبب في الدوران
+am = st.sidebar.selectbox("اختر القسم:", mo)
 
 # --- القسم الأول: حاسبة التكاليف الشاملة ---
-if st.session_state.current_tab == "🧮 حاسبة التكاليف الشاملة":
+if am == "🧮 حاسبة التكاليف الشاملة":
     st.header("🧮 حاسبة التكاليف والشحنات المجمعة")
     
-    # 1. إعدادات التكاليف العامة والعمولات
+    # 1. التكاليف العامة والعمولات
     st.subheader("1️⃣ التكاليف الإضافية والعمولات")
     col1, col2 = st.columns(2)
+    
     with col1:
-        mc = st.number_input("تكاليف التسويق الإجمالية (ر.س):", min_value=0.0, value=50.0, key="mc_input")
+        mc = st.number_input("تكاليف التسويق الإجمالية (ر.س):", min_value=0.0, value=50.0)
+        overhead_val = st.number_input("التكلفة العامة / التشغيلية الثابتة (ر.س):", min_value=0.0, value=30.0)
+        overhead_rate_input = st.number_input("نسبة التكلفة العامة من المبيعات (%):", min_value=0.0, value=0.0)
         
-        # خيار التكلفة العامة (Overhead)
-        overhead_type = st.radio("نوع التكلفة العامة/التشغيلية:", ["مبلغ ثابت (ر.س)", "نسبة من المبيعات (%)"])
-        if overhead_type == "مبلغ ثابت (ر.س)":
-            overhead_val = st.number_input("إجمالي التكلفة العامة (ر.س):", min_value=0.0, value=30.0)
-            overhead_rate = 0.0
-        else:
-            overhead_rate = st.number_input("نسبة التكلفة العامة (%):", min_value=0.0, value=5.0) / 100
-            overhead_val = 0.0
-
     with col2:
-        gr = st.number_input("نسبة بوابة الدفع / العمولة (%):", min_value=0.0, value=2.5, key="gr_input") / 100
-        iv = st.checkbox("خاضع لضريبة القيمة المضافة (15%)", value=True, key="iv_input")
+        gr = st.number_input("نسبة بوابة الدفع / العمولة (%):", min_value=0.0, value=2.5) / 100.0
+        iv = st.checkbox("خاضع لضريبة القيمة المضافة (15%)", value=True)
 
-    # 2. إعدادات وطريقة حسبة الشحن
+    # 2. حسبة رسوم الشحن
     st.markdown("---")
     st.subheader("2️⃣ حسبة رسوم الشحن")
     
     col_ship1, col_ship2 = st.columns(2)
     with col_ship1:
         shipping_calc_type = st.selectbox(
-            "طريقة توزيع الشحن على المنتجات:",
+            "طريقة توزيع الشحن:",
             ["توزيع الإجمالي بالتساوي", "توزيع الإجمالي حسب تكلفة الشراء", "مبلغ شحن ثابت لكل قطعة"]
         )
     with col_ship2:
@@ -108,8 +98,8 @@ if st.session_state.current_tab == "🧮 حاسبة التكاليف الشام�
         ns = total_sell - va
         gf = ns * gr
         
-        # إضافة التكلفة العامة للحسبة
-        calc_overhead = overhead_val if overhead_type == "مبلغ ثابت (ر.س)" else (ns * overhead_rate)
+        # التكلفة العامة الإجمالية (المبلغ الثابت + النسبة)
+        calc_overhead = overhead_val + (ns * (overhead_rate_input / 100.0))
         
         tc = total_buy + mc + actual_shipping + gf + calc_overhead
         npf = ns - tc
@@ -124,15 +114,11 @@ if st.session_state.current_tab == "🧮 حاسبة التكاليف الشام�
         res_col3.metric("صافي الربح", f"{npf:.2f} ر.س", delta=f"{pm:.1f}% هامش ربح")
         res_col4.metric("التكلفة العامة المستقطعة", f"{calc_overhead:.2f} ر.س")
 
-        # 5. تصدير التقرير بملف HTML ينزل مباشرة بدون صفحة بيضاء
+        # 5. تصدير التقرير
         st.markdown("---")
         st.subheader("📄 تصدير التقرير")
 
-        report_html = f"""
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head>
-        <meta charset="UTF-8">
+        report_html = f"""<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
         <style>
             body {{ font-family: system-ui, sans-serif; padding: 20px; color: #1e293b; background: #fff; }}
             .card {{ border: 2px solid #e2e8f0; border-radius: 10px; padding: 20px; max-width: 650px; margin: auto; }}
@@ -141,9 +127,7 @@ if st.session_state.current_tab == "🧮 حاسبة التكاليف الشام�
             td, th {{ padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
             th {{ background: #1e3a8a; color: white; }}
             .tr {{ font-weight: bold; background: #f8fafc; }}
-        </style>
-        </head>
-        <body>
+        </style></head><body>
         <div class="card">
             <div class="h">
                 <h2>4U2 للمحاسبة - تقرير الشحنة والتكاليف</h2>
@@ -163,12 +147,8 @@ if st.session_state.current_tab == "🧮 حاسبة التكاليف الشام�
                 <tr class="tr" style="color:#16a34a;"><td>صافي الربح النهائي</td><td>{npf:.2f} ر.س</td></tr>
                 <tr class="tr"><td>هامش الربح</td><td>{pm:.1f}%</td></tr>
             </table>
-        </div>
-        </body>
-        </html>
-        """
+        </div></body></html>"""
 
-        # التنزيل المباشر الآمن للجوال
         st.download_button(
             label="📥 تنزيل التقرير (HTML/PDF)",
             data=report_html.encode('utf-8'),
@@ -180,11 +160,11 @@ if st.session_state.current_tab == "🧮 حاسبة التكاليف الشام�
         st.warning("يرجى اختيار منتج واحد على الأقل.")
 
 # --- القسم الثاني: إدارة المخزون ---
-elif st.session_state.current_tab == "📦 إدارة المخزون":
+elif am == "📦 إدارة المخزون":
     st.header("📦 إدارة المخزون")
     st.dataframe(st.session_state.inventory, use_container_width=True)
 
 # --- القسم الثالث: لوحة المدير ---
-elif st.session_state.current_tab == "🛠️ لوحة المدير":
+elif am == "🛠️ لوحة المدير":
     st.header("🛠️ لوحة التحكم والإعدادات")
     st.info("إعدادات النظام العامة.")
