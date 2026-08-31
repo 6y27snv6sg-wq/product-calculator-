@@ -188,50 +188,51 @@ if app_mode == "🧮 حاسبة التكاليف الشاملة":
             else:
                 st.error("🔴 هامش ربح منخفض أو خسارة!")
 
-            # 4. التقرير المالي المباشر للتنزيل والمعاينة
+            # 4. التقرير المالي التفاعلي للطباعة والمباشرة كـ PDF
             st.markdown("---")
-            st.subheader("📄 التقرير المالي")
+            st.subheader("📄 معااينة وطباعة التقرير (PDF)")
 
             rows_html = "".join([f"<tr><td>{r['المنتج']}</td><td>{r['تكلفة الشراء (ر.س)']:.2f}</td><td>{r['حصة الشحن (ر.س)']:.2f}</td><td>{r['سعر البيع (ر.س)']:.2f}</td></tr>" for _, r in selected_df.iterrows()])
 
-            report_html = f"""<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
-            <style>
-                body {{ font-family: system-ui, sans-serif; padding: 20px; color: #1e293b; background: #fff; }}
-                .card {{ border: 2px solid #e2e8f0; border-radius: 10px; padding: 20px; max-width: 650px; margin: auto; }}
-                .h {{ text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px; }}
-                table {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; }}
-                td, th {{ padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; }}
-                th {{ background: #1e3a8a; color: white; }}
-                .tr {{ font-weight: bold; background: #f8fafc; }}
-            </style></head><body>
-            <div class="card">
-                <div class="h">
-                    <h2>4U2 للمحاسبة - تقرير الشحنة والتكاليف</h2>
-                    <p>التاريخ: {datetime.date.today()}</p>
+            preview_html = f"""
+            <div style="border: 2px solid #cbd5e1; border-radius: 12px; padding: 20px; background-color: #ffffff; color: #1e293b; font-family: system-ui, sans-serif; direction: rtl;">
+                <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h2 style="color: #1e3a8a; margin: 0;">4U2 للمحاسبة - تقرير الشحنة والتكاليف</h2>
+                    <p style="margin: 5px 0; color: #64748b;">التاريخ: {datetime.date.today()}</p>
                 </div>
-                <h3>تفاصيل المنتجات:</h3>
-                <table>
-                    <tr><th>المنتج</th><th>الشراء</th><th>حصة الشحن</th><th>البيع</th></tr>
-                    {rows_html}
+                
+                <h4 style="color: #1e3a8a; margin-bottom: 8px;">تفاصيل المنتجات:</h4>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #1e3a8a; color: white;">
+                            <th style="padding: 6px; text-align: right;">المنتج</th>
+                            <th style="padding: 6px; text-align: right;">الشراء</th>
+                            <th style="padding: 6px; text-align: right;">حصة الشحن</th>
+                            <th style="padding: 6px; text-align: right;">البيع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows_html}
+                    </tbody>
                 </table>
-                <h3>الملخص المالي:</h3>
-                <table>
-                    <tr><td>إجمالي المبيعات</td><td>{total_sell:.2f} ر.س</td></tr>
-                    <tr><td>إجمالي الشراء والشحن</td><td>{(total_buy + actual_shipping):.2f} ر.س</td></tr>
-                    <tr><td>التكاليف التشغيلية والتسويق</td><td>{(mc + calc_overhead):.2f} ر.س</td></tr>
-                    <tr><td>العمولات والضرائب</td><td>{(gf + va):.2f} ر.س</td></tr>
-                    <tr class="tr" style="color:#16a34a;"><td>صافي الربح النهائي</td><td>{npf:.2f} ر.س</td></tr>
-                    <tr class="tr"><td>هامش الربح</td><td>{pm:.1f}%</td></tr>
-                </table>
-            </div></body></html>"""
 
-            st.download_button(
-                label="📥 تحميل التقرير المالي (HTML/PDF)",
-                data=report_html.encode('utf-8'),
-                file_name=f"4U2_Report_{datetime.date.today()}.html",
-                mime="text/html",
-                use_container_width=True
-            )
+                <h4 style="color: #1e3a8a; margin-bottom: 8px;">الملخص المالي:</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">إجمالي المبيعات</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">{total_sell:.2f} ر.س</td></tr>
+                    <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">إجمالي الشراء والشحن</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">{(total_buy + actual_shipping):.2f} ر.س</td></tr>
+                    <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">التكاليف التشغيلية والتسويق</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">{(mc + calc_overhead):.2f} ر.س</td></tr>
+                    <tr><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">العمولات والضرائب</td><td style="padding: 6px; border-bottom: 1px solid #e2e8f0;">{(gf + va):.2f} ر.س</td></tr>
+                    <tr style="background-color: #f0fdf4; color: #16a34a; font-weight: bold;"><td style="padding: 8px;">صافي الربح النهائي</td><td style="padding: 8px;">{npf:.2f} ر.س ({pm:.1f}%)</td></tr>
+                </table>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="window.print()" style="background-color: #1e3a8a; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">
+                        🖨️ حفظ التقرير كـ PDF / طباعة فورية
+                    </button>
+                </div>
+            </div>
+            """
+            st.components.v1.html(preview_html, height=520, scrolling=True)
         else:
             st.warning("يرجى اختيار منتج واحد على الأقل.")
     else:
